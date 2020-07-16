@@ -5,7 +5,7 @@
 #The model consists of an NxN square lattice, with each point having a spin attributed to it (spin-up = +1, spin-down = -1)
 #The spins of each lattice point interact with their nearest neighbor, as well as with an external applied magnetic field (H-Field)
 
-# Written by Andrew Murphy, 2020
+#Written by Andrew Murphy, 2020
 
 import numpy as np
 import random
@@ -41,25 +41,22 @@ def H_int(i,j):
 #Here we define our Metropolis Algorithm, 
 #this algorithm randomly selects a lattice point and determines whether or not the spin is flipped
 def mc_metropolis():
-    n = 0
-    while n < N**2 :
-        i = random.randint(0,N-1) #x-coordinate of random lattice point
-        j = random.randint(0,N-1) #y-coordinate of random lattice point
+    i = random.randint(0,N-1) #x-coordinate of random lattice point
+    j = random.randint(0,N-1) #y-coordinate of random lattice point
     
-        microstate = ensemble[i][j]
+    microstate = ensemble[i][j]
     
-        E_0 = (-H_field * microstate) + H_int(i,j) # Energy of unflipped state
-        E_f = (H_field * microstate) - H_int(i,j) # Energy of flipped state
-        dE = E_f - E_0
+    E_0 = (-H_field * microstate) + H_int(i,j) # Energy of unflipped state
+    E_f = (H_field * microstate) - H_int(i,j) # Energy of flipped state
+    dE = E_f - E_0
     
     #This is the crux of the algorithm: 
     #if the energy is lowered by flipping, the spin is flipped
     #otherwise, the spin flips with probability exp(-dE/T)
-        if dE < 0 :
-            ensemble[i][j] = -microstate
-        elif random.random() < np.exp(-dE/T) :
-            ensemble[i][j] = -microstate
-        n = n + 1
+    if dE < 0 :
+        ensemble[i][j] = -microstate
+    elif random.random() < np.exp(-dE/T) :
+        ensemble[i][j] = -microstate
     return ensemble
  
 #Here we define a function to calculate the energy of the ensemble by summing over each point
@@ -91,9 +88,9 @@ def calculate_magnetization():
 # Temperature (T) and External Magnetic Field (H-Field) 
 # as well as the sweeping parameters for Temp-Sweeps and Field-sweeps
 
-T = 1 #Be sure, T =/= 0 !
+T = 0.1 #Be sure, T =/= 0 !
 T_step = 0.01
-T_max = 3
+T_max = 5.1
 
 H_field = 0
 H_field_step = 0.1
@@ -104,43 +101,40 @@ Temp_Sweep = 1 # =1 for Temperature Sweep
 Field_Sweep = 0 #=1 for Field Sweep
 
 #These values determine the number of Monte-Carlo steps taken for each step of the sweep (temp or field
-eqSteps = 1000
-measureSteps = 1000
+eqSteps = 10000
+measureSteps = 10000
 
 T_vals = [] #Temperature 
 M_vals = [] #Magnetization
 C_vals = [] #Heat Capacity
 H_vals = [] #H-Field
-
-#This value is necessary for calculating the change in energy when calcualting the Heat Capacity
-#Because we set this value arbitrarily, the initial value of the Heat-Capacity will be nonsensical--be sure to omit it
-previous_energy = 0 
+E_vals = [] #Internal Energy
 
 ensemble = make_ensemble()
 
 if Temp_Sweep == 1 :
     while T < T_max:
+        E1 = E2 = M = 0
         eq = 0
         while eq < eqSteps : #Equillibriate the ensemble
             ensemble = mc_metropolis()
             eq = eq + 1
         measure = 0
-        avg_energy = []
-        avg_mag =[]
         while measure < measureSteps: #Conduct measurements of Heat Capacity and Magnetization
             ensemble = mc_metropolis()
-            avg_energy.append(calculate_energy())
-            avg_mag.append(calculate_magnetization())
+            energy = calculate_energy()
+            mag = calculate_magnetization()
+            E1 = E1 + energy
+            E2 = E2 + energy**2
+            M = M + mag
             measure = measure + 1
-        energy = sum(avg_energy)/len(avg_energy)
-        e_diff = energy - previous_energy
-        mag = sum(avg_mag)/len(avg_mag)
-        capacity = e_diff/T_step
-        T_vals.append(T)
-        M_vals.append(mag)
+        avg_energy = E1/measureSteps
+        avg_mag = M/measureSteps
+        capacity = ((E2/measureSteps) - ((E1**2)/(measureSteps**2)))/(T**2)
+        M_vals.append(avg_mag)
         C_vals.append(capacity)
-        previous_energy = energy
-    
+        T_vals.append(T)
+        
         T = T + T_step
     
 if Field_Sweep == 1 :
@@ -150,26 +144,24 @@ if Field_Sweep == 1 :
             ensemble = mc_metropolis()
             eq = eq + 1
         measure = 0
-        avg_energy = []
-        avg_mag =[]
         while measure < measureSteps: #Conduct measurements of Heat Capacity and Magnetization
             ensemble = mc_metropolis()
-            avg_energy.append(calculate_energy())
-            avg_mag.append(calculate_magnetization())
+            energy = calculate_energy()
+            mag = calculate_magnetization()
+            E1 = E1 + energy
+            E2 = E2 + energy**2
+            M = M + mag
             measure = measure + 1
-        energy = sum(avg_energy)/len(avg_energy)
-        e_diff = energy - previous_energy
-        mag = sum(avg_mag)/len(avg_mag)
-        capacity = e_diff/T_step
-        M_vals.append(mag)
+        avg_energy = E1/measureSteps
+        avg_mag = M/measureSteps
+        capacity = ((E2/measureSteps) - ((E1**2)/(measureSteps**2)))/(T**2)
+	#Here we calculate the heat capacity, using the equation C = (stdev(E)/T)**2
+        M_vals.append(avg_mag)
         C_vals.append(capacity)
         H_vals.append(H_field)
-        previous_energy = energy
-    
+        
         H_field = H_field + H_field_step
-    
-Z = len(T_vals) - 1   
-
-#Here we plot our values. NOTE: If we wish to plot the Heat Capacity, we must remove the first element of each list, since our initial "previous_energy" was set to 0
-plt.scatter(T_vals[1:Z],C_vals[1:Z])
+   
+#Here we plot our values. In my example, I simply plot the temperature and heat capacity.
+plt.scatter(T_vals, C_vals)
 plt.show()
