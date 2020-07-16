@@ -139,6 +139,7 @@ if Temp_Sweep == 1 :
     
 if Field_Sweep == 1 :
     while H_field < H_field_max:
+	E1 = E2 = M = 0
         eq = 0
         while eq < eqSteps : #Equillibriate the ensemble
             ensemble = mc_metropolis()
