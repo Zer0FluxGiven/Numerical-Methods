@@ -9,3 +9,5 @@
 #1. 2D-Hamiltonian.py : This Python script solves and plots Hamilton's Equations in 2 degrees of freedom
 
 #2. 2D-Ising-Model.py : This program uses a Monte-Carlo method to analyze the 2D-Ising Model
+
+#3. Rutherford-Scattering.py: Simulate particle scattering due to central, inverse-square-law force
